@@ -17,7 +17,9 @@ def read_german_sentences():
 
 def read_word_alignments():
   word_alignment_dataset = requests.get(word_alignment_dataset_url).text
-  return map(string_to_tupple, word_alignment_dataset)
+  word_alignments = _read_sentences(word_alignment_dataset)
+  return [[string_to_tupple(x) for x in alignment.split()] for alignment in word_alignments]
 
 def string_to_tupple(s):
-  return (s[0], s[2])
+  numbers = s.split('-')
+  return (int(numbers[1]), int(numbers[0]))

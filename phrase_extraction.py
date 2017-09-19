@@ -64,6 +64,9 @@ def phrase_extraction_algorithm(foreign_sentence, english_sentence, A):
 def array_of_words_from_string(sentence):
   return sentence.split(' ');
 
+def phrase_translation_probabilities(phrase_counter, phrase, phrase_pair_counter, phrase_pair):
+  return phrase_pair_counter[phrase_pair] / phrase_counter[phrase]
+
 def main():
   # phrase_extraction_algorithm(english_sentences[0], german_sentences[0], alignments[0])
   # srctext = "michael assumes that he will stay in the house"
@@ -90,7 +93,9 @@ def main():
     phrase_pair_freq = phrase_pair_counter[phrase_pair]
     f_freq = f_phrase_counter[f_phrase]
     e_freq = e_phrase_counter[e_phrase]
+    p_f_e = phrase_translation_probabilities(f_phrase_counter, f_phrase, phrase_pair_counter, phrase_pair)
+    p_e_f = phrase_translation_probabilities(e_phrase_counter, e_phrase, phrase_pair_counter, phrase_pair)
 
-    print("{} ||| {} ||| {} {} {}".format(f_phrase, e_phrase, f_freq, e_freq, phrase_pair_freq))
+    print("{} ||| {} ||| {} {} {} ||| {} {}".format(f_phrase, e_phrase, f_freq, e_freq, phrase_pair_freq, p_f_e, p_e_f))
 
 main()

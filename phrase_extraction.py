@@ -3,13 +3,7 @@ from collections import Counter
 
 read_actual_data = False
 
-if read_actual_data:
-  english_sentences = data_reader.read_english_sentences()
-  german_sentences = data_reader.read_german_sentences()
-  alignments = data_reader.read_word_alignments()
-
 def phrase_extraction_algorithm(foreign_sentence, english_sentence, A):
-
   def extract(f_start, f_end, e_start, e_end):
     if f_end == -1:
       return set()
@@ -28,11 +22,11 @@ def phrase_extraction_algorithm(foreign_sentence, english_sentence, A):
         english_phrase = " ".join(english_sentence_split[i] for i in range(e_start, e_end+1))
         foreign_phrase = " ".join(foreign_sentence_split[i] for i in range(fs, fe+1))
 
-        sub_alignments = [alignment for alignment in A \
-            if (e_start <= alignment[0] <= e_end) and (fs <= alignment[1] <= fe)]
+        sub_alignments = [(sub_alignment_e-e_start, sub_alignment_f-fs) for (sub_alignment_e, sub_alignment_f) in A \
+            if (e_start <= sub_alignment_e <= e_end) and (fs <= sub_alignment_f <= fe)]
         sub_alignments = tuple(sub_alignments)
 
-        print(foreign_phrase, "--", english_phrase, sub_alignments)
+        # print(english_phrase, "--", foreign_phrase, sub_alignments)
         E.add((foreign_phrase, english_phrase, sub_alignments))
         fe += 1
 
@@ -52,9 +46,9 @@ def phrase_extraction_algorithm(foreign_sentence, english_sentence, A):
 
   f_aligned = [f for (e,f) in A]
 
+  # TODO: max 5?  
   for e_start in range(len(english_sentence_split)):
     for e_end in range(e_start, len(english_sentence_split)):
-      # TODO: is f length of whole sentence?
       f_start, f_end = len(foreign_sentence_split)-1, -1
 
       for (e_pos, f_pos) in A:
@@ -101,52 +95,67 @@ def update_word_translation_counter(word_translation_counter_e_given_f,
     english_word_counter.update(['NULL'])
 
 def all_words_aligned_to_word(i, alignment):
-  return sum([1 for a in alignment if a[0] == i])
+  # By taking the max with 1 we account for non-matching words
+  return max(1, sum([1 for a in alignment if a[0] == i]))
 
-def sum_of_all_words_with_alignment(e_phrase, f_phrase, alignments, word_translation_probabilities):
+def sum_of_all_words_with_alignment(i, e_phrase, f_phrase, alignments, word_translation_probabilities):
   total = 0
-  for alignment in alignments:
-    # TODO: Solve for NULL
-    total += word_translation_probabilities[(e_phrase[alignment[0]], f_phrase[alignment[1]])]
+
+  sub_alignments_i = [a for a in alignments if a[0] == i]
+  if not len(sub_alignments_i):
+    return word_translation_probabilities[(e_phrase[i], 'NULL')]
+
+  for alignment in sub_alignments_i:
+    total += word_translation_probabilities[(e_phrase[i], f_phrase[alignment[1]])]
 
   return total
 
-def lex(e_phrase, f_phrase, alignment, word_translation_probabilities):
+def lex(e_phrase, f_phrase, alignments, word_translation_probabilities):
   lexical_score = 1
   for i in range(len(e_phrase)):
-    lexical_score *= 1 / max(1, all_words_aligned_to_word(i, alignment))
-    lexical_score *= sum_of_all_words_with_alignment(e_phrase, f_phrase, alignment, word_translation_probabilities)
+    lexical_score *= 1 / all_words_aligned_to_word(i, alignments)
+    lexical_score *= sum_of_all_words_with_alignment(i, e_phrase, f_phrase, alignments, word_translation_probabilities)
 
   return lexical_score
+
+def switch_alignments(alignments):
+  return tuple([(b, a) for (a, b) in alignments])
+
 def main():
+  # TODO: Only phrases of max length 5
   # phrase_extraction_algorithm(english_sentences[0], german_sentences[0], alignments[0])
-  # srctext = "michael assumes that he will stay in the house"
-  # trgtext = "michael geht davon aus , dass er im haus bleibt"
-  # alignment = [(0,0), (1,1), (1,2), (1,3), (2,5), (3,6), (4,9), (5,9), (6,7), (7,7), (8,8)]
 
-  foreign_sentence = "wiederaufnahme der sitzungsperiode"
-  english_sentence = "resumption of the session"
-  alignments = [(0,0), (1,1), (2,1), (3,2)]
-
-  foreign_sentence = "michael geht davon aus , dass er im haus bleibt"
-  english_sentence = "michael assumes that he will stay in the house"
-  alignments = [(0,0), (1,1), (1,2), (1,3), (2,5), (3,6), (4,9), (5,9), (6,7), (7,7), (8,8)]
+  english_sentences = data_reader.read_english_sentences_local()
+  foreign_sentences = data_reader.read_german_sentences_local()
+  global_alignments = data_reader.read_word_alignments_local()
 
   word_translation_counter_e_given_f = Counter()
   word_translation_counter_f_given_e = Counter()
   foreign_word_counter = Counter()
   english_word_counter = Counter()
 
-  # TODO: Done twicwe
-  foreign_sentence_split = array_of_words_from_string(foreign_sentence)
-  english_sentence_split = array_of_words_from_string(english_sentence)
+  phrase_pairs = set()
 
-  phrase_pairs = phrase_extraction_algorithm(foreign_sentence, english_sentence, alignments)
 
-  update_word_translation_counter(word_translation_counter_e_given_f, word_translation_counter_f_given_e,
-    foreign_word_counter, english_word_counter,
-    foreign_sentence_split, english_sentence_split, alignments)
 
+  for i in range(500000):
+    if i % 1000 == 0:
+      print(i)
+    english_sentence = english_sentences[i]
+    foreign_sentence = foreign_sentences[i]
+    alignments = global_alignments[i]
+
+    # TODO: Done twice
+    foreign_sentence_split = array_of_words_from_string(foreign_sentence)
+    english_sentence_split = array_of_words_from_string(english_sentence)
+
+    phrase_pairs.update(phrase_extraction_algorithm(foreign_sentence, english_sentence, alignments))
+
+    update_word_translation_counter(word_translation_counter_e_given_f, word_translation_counter_f_given_e,
+      foreign_word_counter, english_word_counter,
+      foreign_sentence_split, english_sentence_split, alignments)
+
+  ### Calculate word translation probabilities from their counts
   word_translation_probabilities_e_given_f = {}
   for word_translation in word_translation_counter_e_given_f:
     foreign_word = word_translation[1]
@@ -159,26 +168,50 @@ def main():
     word_translation_probabilities_f_given_e[word_translation] = \
       word_translation_counter_f_given_e[word_translation] / english_word_counter[english_word]
 
-  print(word_translation_probabilities_e_given_f)
-  print()
-  print(word_translation_probabilities_f_given_e)
-
   f_phrase_counter = Counter(f_phrase for (f_phrase,e_phrase,alignment) in phrase_pairs)
   e_phrase_counter = Counter(e_phrase for (f_phrase,e_phrase,alignment) in phrase_pairs)
   phrase_pair_counter = Counter(phrase_pairs)
 
+
+
+
+
+
+
+
+
+
+
   for phrase_pair in phrase_pairs:
-    f_phrase, e_phrase, alignment = phrase_pair
+    f_phrase, e_phrase, sub_alignments = phrase_pair
+    e_phrase_split = e_phrase.split(' ')
+    f_phrase_split = f_phrase.split(' ')
+    sub_alignments_switched = switch_alignments(sub_alignments)
 
     phrase_pair_freq = phrase_pair_counter[phrase_pair]
     f_freq = f_phrase_counter[f_phrase]
     e_freq = e_phrase_counter[e_phrase]
     p_f_e = phrase_translation_probabilities(f_phrase_counter, f_phrase, phrase_pair_counter, phrase_pair)
     p_e_f = phrase_translation_probabilities(e_phrase_counter, e_phrase, phrase_pair_counter, phrase_pair)
-    lex_e_f = lex(e_phrase.split(), f_phrase.split(), alignment, word_translation_probabilities_e_given_f)
-    lex_f_e = lex(f_phrase.split(), e_phrase.split(), alignment, word_translation_probabilities_f_given_e)
+    lex_e_f = lex(e_phrase_split, f_phrase_split, sub_alignments, word_translation_probabilities_e_given_f)
+    lex_f_e = lex(f_phrase_split, e_phrase_split, sub_alignments_switched, word_translation_probabilities_f_given_e)
 
     print("{} ||| {} ||| {} {} {} ||| {} {} ||| {} {}".format(\
         f_phrase, e_phrase, f_freq, e_freq, phrase_pair_freq, p_f_e, p_e_f, lex_f_e, lex_e_f))
 
 main()
+
+
+
+
+  # srctext = "michael assumes that he will stay in the house"
+  # trgtext = "michael geht davon aus , dass er im haus bleibt"
+  # alignment = [(0,0), (1,1), (1,2), (1,3), (2,5), (3,6), (4,9), (5,9), (6,7), (7,7), (8,8)]
+
+  # foreign_sentence = "wiederaufnahme der sitzungsperiode"
+  # english_sentence = "resumption of the session"
+  # alignments = [(0,0), (1,1), (2,1), (3,2)]
+
+  # foreign_sentence = "michael geht davon aus , dass er im haus bleibt"
+  # english_sentence = "michael assumes that he will stay in the house"
+  # alignments = [(0,0), (1,1), (1,2), (1,3), (2,5), (3,6), (4,9), (5,9), (6,7), (7,7), (8,8)]

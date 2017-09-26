@@ -1,12 +1,13 @@
 import data_reader
 from collections import Counter
 
-def phrase_extraction_algorithm(foreign_sentence, english_sentence, A):
+def phrase_extraction_algorithm(foreign_sentence_split, english_sentence_split, A):
+
   def extract(f_start, f_end, e_start, e_end):
     if f_end == -1:
       return set()
 
-    for (e,f) in A:
+    for (e, f) in A:
       if (f >= f_start and f <= f_end) and (e < e_start or e > e_end):
         return set()
 
@@ -17,10 +18,10 @@ def phrase_extraction_algorithm(foreign_sentence, english_sentence, A):
       fe = f_end
 
       while True:
-        english_phrase = " ".join(english_sentence_split[i] for i in range(e_start, e_end+1))
-        foreign_phrase = " ".join(foreign_sentence_split[i] for i in range(fs, fe+1))
+        english_phrase = " ".join(english_sentence_split[i] for i in range(e_start, e_end + 1))
+        foreign_phrase = " ".join(foreign_sentence_split[i] for i in range(fs, fe + 1))
 
-        sub_alignments = [(sub_alignment_e-e_start, sub_alignment_f-fs) for (sub_alignment_e, sub_alignment_f) in A \
+        sub_alignments = [(sub_alignment_e - e_start, sub_alignment_f - fs) for (sub_alignment_e, sub_alignment_f) in A \
             if (e_start <= sub_alignment_e <= e_end) and (fs <= sub_alignment_f <= fe)]
         sub_alignments = tuple(sub_alignments)
 
@@ -38,12 +39,9 @@ def phrase_extraction_algorithm(foreign_sentence, english_sentence, A):
 
     return E
 
-  foreign_sentence_split = array_of_words_from_string(foreign_sentence)
-  english_sentence_split = array_of_words_from_string(english_sentence)
-
   phrase_pairs = set()
 
-  f_aligned = [f for (e,f) in A]
+  f_aligned = [f for (e, f) in A]
 
   for e_start in range(len(english_sentence_split)):
     # Only make phrases of length five or less
@@ -120,10 +118,56 @@ def lex(e_phrase, f_phrase, alignments, word_translation_probabilities):
 def switch_alignments(alignments):
   return tuple([(b, a) for (a, b) in alignments])
 
-def main():
-  english_sentences = data_reader.read_english_sentences_local()
-  foreign_sentences = data_reader.read_german_sentences_local()
-  global_alignments = data_reader.read_word_alignments_local()
+def calculate_word_translation_probabilities(word_translation_counter, word_counter):
+  word_translation_probabilities = {}
+  for word_translation in word_translation_counter:
+    foreign_word = word_translation[1]
+    word_translation_probabilities[word_translation] = \
+      word_translation_counter[word_translation] / word_counter[foreign_word]
+
+  return word_translation_probabilities
+
+def read_data(locally):
+  if locally:
+    english_sentences = data_reader.read_english_sentences_local()
+    foreign_sentences = data_reader.read_german_sentences_local()
+    global_alignments = data_reader.read_word_alignments_local()
+
+  else:
+    # Read the corpus from the online resources
+    english_sentences = data_reader.read_english_sentences()
+    foreign_sentences = data_reader.read_german_sentences()
+    global_alignments = data_reader.read_word_alignments()
+
+  return english_sentences, foreign_sentences, global_alignments
+
+def create_phrase_pairs_and_counts(n, english_sentences, foreign_sentences, global_alignments, word_translation_counter_e_given_f, \
+    word_translation_counter_f_given_e, foreign_word_counter, english_word_counter, phrase_pairs):
+  for i in range(n):
+    if i % 1000 == 0:
+      print(i)
+
+    foreign_sentence = foreign_sentences[i]
+    english_sentence = english_sentences[i]
+    alignments = global_alignments[i]
+
+    foreign_sentence_split = array_of_words_from_string(foreign_sentence)
+    english_sentence_split = array_of_words_from_string(english_sentence)
+
+    phrase_pairs.update(phrase_extraction_algorithm(foreign_sentence_split, english_sentence_split, alignments))
+
+    update_word_translation_counter(word_translation_counter_e_given_f, word_translation_counter_f_given_e,
+      foreign_word_counter, english_word_counter,
+      foreign_sentence_split, english_sentence_split, alignments)
+
+
+def main(read_data_locally):
+
+  ################################################################
+  ### Initialize variables and create phrase pairs with counts ###
+  ################################################################
+
+  english_sentences, foreign_sentences, global_alignments = read_data(read_data_locally)
 
   word_translation_counter_e_given_f = Counter()
   word_translation_counter_f_given_e = Counter()
@@ -132,57 +176,39 @@ def main():
 
   phrase_pairs = set()
 
-  for i in range(len(english_sentences)):
-    if i % 1000 == 0:
-      print(i)
-    english_sentence = english_sentences[i]
-    foreign_sentence = foreign_sentences[i]
-    alignments = global_alignments[i]
+  create_phrase_pairs_and_counts(10, english_sentences, foreign_sentences, global_alignments, \
+      word_translation_counter_e_given_f, word_translation_counter_f_given_e, \
+      foreign_word_counter, english_word_counter, phrase_pairs)
 
-    # TODO: Done twice
-    foreign_sentence_split = array_of_words_from_string(foreign_sentence)
-    english_sentence_split = array_of_words_from_string(english_sentence)
+  word_translation_probabilities_e_given_f = calculate_word_translation_probabilities(word_translation_counter_e_given_f, foreign_word_counter)
+  word_translation_probabilities_f_given_e = calculate_word_translation_probabilities(word_translation_counter_f_given_e, english_word_counter)
 
-    phrase_pairs.update(phrase_extraction_algorithm(foreign_sentence, english_sentence, alignments))
-
-    update_word_translation_counter(word_translation_counter_e_given_f, word_translation_counter_f_given_e,
-      foreign_word_counter, english_word_counter,
-      foreign_sentence_split, english_sentence_split, alignments)
-
-  ### Calculate word translation probabilities from their counts
-  word_translation_probabilities_e_given_f = {}
-  for word_translation in word_translation_counter_e_given_f:
-    foreign_word = word_translation[1]
-    word_translation_probabilities_e_given_f[word_translation] = \
-      word_translation_counter_e_given_f[word_translation] / foreign_word_counter[foreign_word]
-
-  word_translation_probabilities_f_given_e = {}
-  for word_translation in word_translation_counter_f_given_e:
-    english_word = word_translation[1]
-    word_translation_probabilities_f_given_e[word_translation] = \
-      word_translation_counter_f_given_e[word_translation] / english_word_counter[english_word]
-
-  f_phrase_counter = Counter(f_phrase for (f_phrase,e_phrase,alignment) in phrase_pairs)
-  e_phrase_counter = Counter(e_phrase for (f_phrase,e_phrase,alignment) in phrase_pairs)
+  f_phrase_counter = Counter(f_phrase for (f_phrase, e_phrase, alignment) in phrase_pairs)
+  e_phrase_counter = Counter(e_phrase for (f_phrase, e_phrase, alignment) in phrase_pairs)
   phrase_pair_counter = Counter(phrase_pairs)
 
-  #####################
+  ###################################################
+  ### Create actual output for each sentence pair ###
+  ###################################################
 
-  for phrase_pair in phrase_pairs:
-    f_phrase, e_phrase, sub_alignments = phrase_pair
-    e_phrase_split = e_phrase.split(' ')
-    f_phrase_split = f_phrase.split(' ')
-    sub_alignments_switched = switch_alignments(sub_alignments)
+  with open('output10_after_refactor.txt', 'w') as f:
+    for phrase_pair in phrase_pairs:
+      f_phrase, e_phrase, sub_alignments = phrase_pair
+      e_phrase_split = e_phrase.split(' ')
+      f_phrase_split = f_phrase.split(' ')
+      sub_alignments_switched = switch_alignments(sub_alignments)
 
-    phrase_pair_freq = phrase_pair_counter[phrase_pair]
-    f_freq = f_phrase_counter[f_phrase]
-    e_freq = e_phrase_counter[e_phrase]
-    p_f_e = phrase_translation_probabilities(e_phrase_counter, e_phrase, phrase_pair_counter, phrase_pair)
-    p_e_f = phrase_translation_probabilities(f_phrase_counter, f_phrase, phrase_pair_counter, phrase_pair)
-    lex_e_f = lex(e_phrase_split, f_phrase_split, sub_alignments, word_translation_probabilities_e_given_f)
-    lex_f_e = lex(f_phrase_split, e_phrase_split, sub_alignments_switched, word_translation_probabilities_f_given_e)
+      phrase_pair_freq = phrase_pair_counter[phrase_pair]
+      f_freq = f_phrase_counter[f_phrase]
+      e_freq = e_phrase_counter[e_phrase]
+      p_f_e = phrase_translation_probabilities(e_phrase_counter, e_phrase, phrase_pair_counter, phrase_pair)
+      p_e_f = phrase_translation_probabilities(f_phrase_counter, f_phrase, phrase_pair_counter, phrase_pair)
+      lex_e_f = lex(e_phrase_split, f_phrase_split, sub_alignments, word_translation_probabilities_e_given_f)
+      lex_f_e = lex(f_phrase_split, e_phrase_split, sub_alignments_switched, word_translation_probabilities_f_given_e)
 
-    print("{} ||| {} ||| {} {} {} {} ||| {} {} {}".format(\
-        f_phrase, e_phrase, p_f_e, p_e_f, lex_f_e, lex_e_f, f_freq, e_freq, phrase_pair_freq))
+      f.write("{} ||| {} ||| {} {} {} {} ||| {} {} {}\n".format(\
+          f_phrase, e_phrase, p_f_e, p_e_f, lex_f_e, lex_e_f, f_freq, e_freq, phrase_pair_freq))
 
-main()
+read_locally = True
+
+main(read_locally)

@@ -121,9 +121,9 @@ def switch_alignments(alignments):
   return tuple([(b, a) for (a, b) in alignments])
 
 def main():
-  english_sentences = data_reader.read_english_sentences_local()
-  foreign_sentences = data_reader.read_german_sentences_local()
-  global_alignments = data_reader.read_word_alignments_local()
+  english_sentences = data_reader.read_english_sentences()
+  foreign_sentences = data_reader.read_german_sentences()
+  global_alignments = data_reader.read_word_alignments()
 
   word_translation_counter_e_given_f = Counter()
   word_translation_counter_f_given_e = Counter()

@@ -154,7 +154,7 @@ def create_phrase_pairs_and_counts(n, english_sentences, foreign_sentences, glob
       foreign_sentence_split, english_sentence_split, alignments)
 
 
-def main(read_data_locally):
+def main():
 
   ################################################################
   ### Initialize variables and create phrase pairs with counts ###
@@ -201,6 +201,4 @@ def main(read_data_locally):
     print("{} ||| {} ||| {} {} {} {} ||| {} {} {}\n".format(\
         f_phrase, e_phrase, p_f_e, p_e_f, lex_f_e, lex_e_f, f_freq, e_freq, phrase_pair_freq))
 
-read_locally = True
-
-main(read_locally)
+main()

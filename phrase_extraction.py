@@ -1,8 +1,6 @@
 import data_reader
 from collections import Counter
 
-read_actual_data = False
-
 def phrase_extraction_algorithm(foreign_sentence, english_sentence, A):
   def extract(f_start, f_end, e_start, e_end):
     if f_end == -1:
@@ -25,8 +23,6 @@ def phrase_extraction_algorithm(foreign_sentence, english_sentence, A):
         sub_alignments = [(sub_alignment_e-e_start, sub_alignment_f-fs) for (sub_alignment_e, sub_alignment_f) in A \
             if (e_start <= sub_alignment_e <= e_end) and (fs <= sub_alignment_f <= fe)]
         sub_alignments = tuple(sub_alignments)
-
-        # print(english_phrase, "--", foreign_phrase, sub_alignments)
 
         if fe < fs + 5: # Only make phrases of length five or less
           E.add((foreign_phrase, english_phrase, sub_alignments))
@@ -125,9 +121,6 @@ def switch_alignments(alignments):
   return tuple([(b, a) for (a, b) in alignments])
 
 def main():
-  # TODO: Only phrases of max length 5
-  # phrase_extraction_algorithm(english_sentences[0], german_sentences[0], alignments[0])
-
   english_sentences = data_reader.read_english_sentences_local()
   foreign_sentences = data_reader.read_german_sentences_local()
   global_alignments = data_reader.read_word_alignments_local()
@@ -139,9 +132,7 @@ def main():
 
   phrase_pairs = set()
 
-
-
-  for i in range(500):
+  for i in range(len(english_sentences)):
     if i % 1000 == 0:
       print(i)
     english_sentence = english_sentences[i]
@@ -175,15 +166,7 @@ def main():
   e_phrase_counter = Counter(e_phrase for (f_phrase,e_phrase,alignment) in phrase_pairs)
   phrase_pair_counter = Counter(phrase_pairs)
 
-
-
-
-
-
-
-
-
-
+  #####################
 
   for phrase_pair in phrase_pairs:
     f_phrase, e_phrase, sub_alignments = phrase_pair
@@ -194,27 +177,12 @@ def main():
     phrase_pair_freq = phrase_pair_counter[phrase_pair]
     f_freq = f_phrase_counter[f_phrase]
     e_freq = e_phrase_counter[e_phrase]
-    p_f_e = phrase_translation_probabilities(f_phrase_counter, f_phrase, phrase_pair_counter, phrase_pair)
-    p_e_f = phrase_translation_probabilities(e_phrase_counter, e_phrase, phrase_pair_counter, phrase_pair)
+    p_f_e = phrase_translation_probabilities(e_phrase_counter, e_phrase, phrase_pair_counter, phrase_pair)
+    p_e_f = phrase_translation_probabilities(f_phrase_counter, f_phrase, phrase_pair_counter, phrase_pair)
     lex_e_f = lex(e_phrase_split, f_phrase_split, sub_alignments, word_translation_probabilities_e_given_f)
     lex_f_e = lex(f_phrase_split, e_phrase_split, sub_alignments_switched, word_translation_probabilities_f_given_e)
 
-    print("{} ||| {} ||| {} {} {} ||| {} {} ||| {} {}".format(\
-        f_phrase, e_phrase, f_freq, e_freq, phrase_pair_freq, p_f_e, p_e_f, lex_f_e, lex_e_f))
+    print("{} ||| {} ||| {} {} {} {} ||| {} {} {}".format(\
+        f_phrase, e_phrase, p_f_e, p_e_f, lex_f_e, lex_e_f, f_freq, e_freq, phrase_pair_freq))
 
 main()
-
-
-
-
-  # srctext = "michael assumes that he will stay in the house"
-  # trgtext = "michael geht davon aus , dass er im haus bleibt"
-  # alignment = [(0,0), (1,1), (1,2), (1,3), (2,5), (3,6), (4,9), (5,9), (6,7), (7,7), (8,8)]
-
-  # foreign_sentence = "wiederaufnahme der sitzungsperiode"
-  # english_sentence = "resumption of the session"
-  # alignments = [(0,0), (1,1), (2,1), (3,2)]
-
-  # foreign_sentence = "michael geht davon aus , dass er im haus bleibt"
-  # english_sentence = "michael assumes that he will stay in the house"
-  # alignments = [(0,0), (1,1), (1,2), (1,3), (2,5), (3,6), (4,9), (5,9), (6,7), (7,7), (8,8)]

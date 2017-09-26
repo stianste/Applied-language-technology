@@ -27,10 +27,13 @@ def phrase_extraction_algorithm(foreign_sentence, english_sentence, A):
         sub_alignments = tuple(sub_alignments)
 
         # print(english_phrase, "--", foreign_phrase, sub_alignments)
-        E.add((foreign_phrase, english_phrase, sub_alignments))
+
+        if fe < fs + 5: # Only make phrases of length five or less
+          E.add((foreign_phrase, english_phrase, sub_alignments))
+
         fe += 1
 
-        if fe in f_aligned or fe == len(foreign_sentence_split):
+        if fe in f_aligned or fe == len(foreign_sentence_split) or fe > fs + 5:
           break
 
       fs -= 1
@@ -46,9 +49,9 @@ def phrase_extraction_algorithm(foreign_sentence, english_sentence, A):
 
   f_aligned = [f for (e,f) in A]
 
-  # TODO: max 5?  
   for e_start in range(len(english_sentence_split)):
-    for e_end in range(e_start, len(english_sentence_split)):
+    # Only make phrases of length five or less
+    for e_end in range(e_start, min(e_start + 5, len(english_sentence_split))):
       f_start, f_end = len(foreign_sentence_split)-1, -1
 
       for (e_pos, f_pos) in A:
@@ -138,7 +141,7 @@ def main():
 
 
 
-  for i in range(500000):
+  for i in range(500):
     if i % 1000 == 0:
       print(i)
     english_sentence = english_sentences[i]

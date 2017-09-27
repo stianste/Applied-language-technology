@@ -169,7 +169,7 @@ def main():
 
   phrase_pairs = set()
 
-  create_phrase_pairs_and_counts(10, english_sentences, foreign_sentences, global_alignments, \
+  create_phrase_pairs_and_counts(len(english_sentences), english_sentences, foreign_sentences, global_alignments, \
       word_translation_counter_e_given_f, word_translation_counter_f_given_e, \
       foreign_word_counter, english_word_counter, phrase_pairs)
 
@@ -180,25 +180,26 @@ def main():
   e_phrase_counter = Counter(e_phrase for (f_phrase, e_phrase, alignment) in phrase_pairs)
   phrase_pair_counter = Counter(phrase_pairs)
 
-  ###################################################
-  ### Create actual output for each sentence pair ###
-  ###################################################
+  ##################################################
+  ### Write actual output for each sentence pair ###
+  ##################################################
 
-  for phrase_pair in phrase_pairs:
-    f_phrase, e_phrase, sub_alignments = phrase_pair
-    e_phrase_split = e_phrase.split(' ')
-    f_phrase_split = f_phrase.split(' ')
-    sub_alignments_switched = switch_alignments(sub_alignments)
+  with open('output.txt', 'w') as output_file:
+    for phrase_pair in phrase_pairs:
+      f_phrase, e_phrase, sub_alignments = phrase_pair
+      e_phrase_split = e_phrase.split(' ')
+      f_phrase_split = f_phrase.split(' ')
+      sub_alignments_switched = switch_alignments(sub_alignments)
 
-    phrase_pair_freq = phrase_pair_counter[phrase_pair]
-    f_freq = f_phrase_counter[f_phrase]
-    e_freq = e_phrase_counter[e_phrase]
-    p_f_e = phrase_translation_probabilities(e_phrase_counter, e_phrase, phrase_pair_counter, phrase_pair)
-    p_e_f = phrase_translation_probabilities(f_phrase_counter, f_phrase, phrase_pair_counter, phrase_pair)
-    lex_e_f = lex(e_phrase_split, f_phrase_split, sub_alignments, word_translation_probabilities_e_given_f)
-    lex_f_e = lex(f_phrase_split, e_phrase_split, sub_alignments_switched, word_translation_probabilities_f_given_e)
+      phrase_pair_freq = phrase_pair_counter[phrase_pair]
+      f_freq = f_phrase_counter[f_phrase]
+      e_freq = e_phrase_counter[e_phrase]
+      p_f_e = phrase_translation_probabilities(e_phrase_counter, e_phrase, phrase_pair_counter, phrase_pair)
+      p_e_f = phrase_translation_probabilities(f_phrase_counter, f_phrase, phrase_pair_counter, phrase_pair)
+      lex_e_f = lex(e_phrase_split, f_phrase_split, sub_alignments, word_translation_probabilities_e_given_f)
+      lex_f_e = lex(f_phrase_split, e_phrase_split, sub_alignments_switched, word_translation_probabilities_f_given_e)
 
-    print("{} ||| {} ||| {} {} {} {} ||| {} {} {}\n".format(\
-        f_phrase, e_phrase, p_f_e, p_e_f, lex_f_e, lex_e_f, f_freq, e_freq, phrase_pair_freq))
+      output_file.write("{} ||| {} ||| {} {} {} {} ||| {} {} {}\n".format(\
+          f_phrase, e_phrase, p_f_e, p_e_f, lex_f_e, lex_e_f, f_freq, e_freq, phrase_pair_freq))
 
 main()

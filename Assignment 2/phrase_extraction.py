@@ -89,24 +89,23 @@ def count_reorderings(n, english_sentences, foreign_sentences, global_alignments
     foreign_sentence_split = foreign_sentence.split(' ')
     english_sentence_split = english_sentence.split(' ')
 
-    # f, e, sub_alignments,
-    # (e_start, e_end), (f_start, f_end), (e_first_alignment, e_last_alignment), (f_first_alignment, f_last_alignment)
+    # f, e, sub_alignments, (f_start, f_end), (e_start, e_end)
     phrase_pairs = phrase_extraction_algorithm(foreign_sentence_split, english_sentence_split, alignments)
 
     for phrase_pair_base in phrase_pairs:
-      base_pair_f                                             = phrase_pair_base[0]
-      base_pair_e                                             = phrase_pair_base[1]
-      base_pair_e_start, base_pair_e_end                      = phrase_pair_base[3]
-      base_pair_f_start, base_pair_f_end                      = phrase_pair_base[4]
+      base_pair_f                         = phrase_pair_base[0]
+      base_pair_e                         = phrase_pair_base[1]
+      base_pair_f_start, base_pair_f_end  = phrase_pair_base[3]
+      base_pair_e_start, base_pair_e_end  = phrase_pair_base[4]
 
       global_phrase_pairs.update([(base_pair_f, base_pair_e)])
 
       for phrase_pair_target in phrase_pairs:
-        target_pair_f                                               = phrase_pair_target[0]
-        target_pair_e                                               = phrase_pair_target[1]
-        target_pair_sub_alignments                                  = phrase_pair_target[2]
-        target_pair_e_start, target_pair_e_end                      = phrase_pair_target[3]
-        target_pair_f_start, target_pair_f_end                      = phrase_pair_target[4]
+        target_pair_f                           = phrase_pair_target[0]
+        target_pair_e                           = phrase_pair_target[1]
+        target_pair_sub_alignments              = phrase_pair_target[2]
+        target_pair_f_start, target_pair_f_end  = phrase_pair_target[3]
+        target_pair_e_start, target_pair_e_end  = phrase_pair_target[4]
         target_pair_f_last_index = len(target_pair_f.split(' ')) - 1
         target_pair_e_last_index = len(target_pair_e.split(' ')) - 1
 

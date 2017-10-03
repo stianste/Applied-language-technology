@@ -77,8 +77,8 @@ def phrase_extraction_algorithm(foreign_sentence_split, english_sentence_split, 
   return phrase_pairs
 
 def count_reorderings(n, english_sentences, foreign_sentences, global_alignments):
-  reorderings_counter = Counter()
-  word_based_reorderings_counter = Counter()
+  phrase_based_reorderings_counter = Counter()
+  word_based_phrase_based_reorderings_counter = Counter()
   global_phrase_pairs = set()
 
   for i in range(n):
@@ -114,35 +114,35 @@ def count_reorderings(n, english_sentences, foreign_sentences, global_alignments
         if target_pair_e_start == base_pair_e_end + 1:
 
           if target_pair_f_start == base_pair_f_end + 1:
-            reorderings_counter.update([('ltr', 'm', base_pair_f, base_pair_e)])
-            reorderings_counter.update([('rtl','m', target_pair_f, target_pair_e)])
+            phrase_based_reorderings_counter.update([('ltr', 'm', base_pair_f, base_pair_e)])
+            phrase_based_reorderings_counter.update([('rtl','m', target_pair_f, target_pair_e)])
 
             if (0, 0) in target_pair_sub_alignments:
-              word_based_reorderings_counter.update(['ltr', 'm', base_pair_f, base_pair_e])
+              word_based_phrase_based_reorderings_counter.update(['ltr', 'm', base_pair_f, base_pair_e])
             else:
-              word_based_reorderings_counter.update(['ltr', 'dr', base_pair_f, base_pair_e])
+              word_based_phrase_based_reorderings_counter.update(['ltr', 'dr', base_pair_f, base_pair_e])
 
           elif target_pair_f_start == base_pair_f_end - 1:
-            reorderings_counter.update([('ltr','s', base_pair_f, base_pair_e)])
-            reorderings_counter.update([('rtl','s', target_pair_f, target_pair_e)])
+            phrase_based_reorderings_counter.update([('ltr','s', base_pair_f, base_pair_e)])
+            phrase_based_reorderings_counter.update([('rtl','s', target_pair_f, target_pair_e)])
 
             if (0, target_pair_f_last_index) in target_pair_sub_alignments:
-              word_based_reorderings_counter.update(['ltr', 's', base_pair_f, base_pair_e])
+              word_based_phrase_based_reorderings_counter.update(['ltr', 's', base_pair_f, base_pair_e])
             else:
-              word_based_reorderings_counter.update(['ltr', 'dl', base_pair_f, base_pair_e])
+              word_based_phrase_based_reorderings_counter.update(['ltr', 'dl', base_pair_f, base_pair_e])
 
           elif target_pair_f_start > base_pair_f_end:
             # TODO: Figure out the difference between discontinuous right and left
-            reorderings_counter.update([('ltr','dr', base_pair_f, base_pair_e)])
-            reorderings_counter.update([('rtl','dr', target_pair_f, target_pair_e)])
+            phrase_based_reorderings_counter.update([('ltr','dr', base_pair_f, base_pair_e)])
+            phrase_based_reorderings_counter.update([('rtl','dr', target_pair_f, target_pair_e)])
 
-            word_based_reorderings_counter.update(['ltr', 'dr', base_pair_f, base_pair_e])
+            word_based_phrase_based_reorderings_counter.update(['ltr', 'dr', base_pair_f, base_pair_e])
 
           elif target_pair_f_end < base_pair_f_start:
-            reorderings_counter.update([('ltr','dl', base_pair_f, base_pair_e)])
-            reorderings_counter.update([('rtl','dl', target_pair_f, target_pair_e)])
+            phrase_based_reorderings_counter.update([('ltr','dl', base_pair_f, base_pair_e)])
+            phrase_based_reorderings_counter.update([('rtl','dl', target_pair_f, target_pair_e)])
 
-            word_based_reorderings_counter.update(['ltr', 'dr', base_pair_f, base_pair_e])
+            word_based_phrase_based_reorderings_counter.update(['ltr', 'dr', base_pair_f, base_pair_e])
 
         # Word-based (right-to-left)
         # Check whether the target block ends where the base block begins
@@ -151,28 +151,28 @@ def count_reorderings(n, english_sentences, foreign_sentences, global_alignments
           if target_pair_f_end == base_pair_f_start - 1:
             # Check whether an alignment in this block is monotone
             if (target_pair_e_last_index, target_pair_f_last_index) in target_pair_sub_alignments:
-              reorderings_counter.update(['rtl', 'm', base_pair_f, base_pair_e])
+              phrase_based_reorderings_counter.update(['rtl', 'm', base_pair_f, base_pair_e])
             else:
-              reorderings_counter.update(['rtl', 'dr', base_pair_f, base_pair_e])
+              phrase_based_reorderings_counter.update(['rtl', 'dr', base_pair_f, base_pair_e])
 
           # Check whether the target block is on the left side of the base block
           # (which makes it discontinuous right for the right-to-left model)
           elif (target_pair_f_end < base_pair_f_start):
-            reorderings_counter.update(['rtl', 'dr', base_pair_f, base_pair_e])
+            phrase_based_reorderings_counter.update(['rtl', 'dr', base_pair_f, base_pair_e])
 
           # Check wether the block is swapped
           elif target_pair_f_start == base_pair_f_end + 1:
             # Check wether there is also a word alignment that is swapped
             if (target_pair_e_last_index, 0) in target_pair_sub_alignments:
-              reorderings_counter.update(['rtl', 's', base_pair_f, base_pair_e])
+              phrase_based_reorderings_counter.update(['rtl', 's', base_pair_f, base_pair_e])
             else:
-              reorderings_counter.update(['rtl', 'dl', base_pair_f, base_pair_e])
+              phrase_based_reorderings_counter.update(['rtl', 'dl', base_pair_f, base_pair_e])
           
           # Check wether the target block is on the right side of the base block (making it discontinuous left in the rtl model)
           elif (target_pair_f_start > base_pair_f_end):
-            reorderings_counter.update(['rtl', 'dl', base_pair_f, base_pair_e])            
+            phrase_based_reorderings_counter.update(['rtl', 'dl', base_pair_f, base_pair_e])            
 
-  return reorderings_counter, global_phrase_pairs
+  return phrase_based_reorderings_counter, global_phrase_pairs
 
 def main():
 
@@ -186,26 +186,26 @@ def main():
   foreign_sentences = ["f1 f2 f3 f4 f5 f6 f7"]
   global_alignments = [[(0, 0), (1, 1), (2, 1), (3, 4), (3, 5), (4, 2), (4, 3), (5, 6)]]
 
-  reorderings_counter, phrase_pairs = count_reorderings(1, english_sentences, foreign_sentences, global_alignments)
+  phrase_based_reorderings_counter, phrase_pairs = count_reorderings(1, english_sentences, foreign_sentences, global_alignments)
 
   for (f, e) in phrase_pairs:
     ordering_count_sum_right = 0
     ordering_count_sum_left = 0
 
     for o in ['m', 's', 'dl', 'dr']:
-      ordering_count_sum_right += reorderings_counter[('rtl', o, f, e)]
-      ordering_count_sum_left += reorderings_counter[('ltr', o, f, e)]
+      ordering_count_sum_right += phrase_based_reorderings_counter[('rtl', o, f, e)]
+      ordering_count_sum_left += phrase_based_reorderings_counter[('ltr', o, f, e)]
 
     if not ordering_count_sum_right == 0 and not ordering_count_sum_left == 0:
-      p_l_r_m = reorderings_counter['ltr', 'm', f, e] / ordering_count_sum_left
-      p_l_r_s = reorderings_counter['ltr', 's', f, e] / ordering_count_sum_left
-      p_l_r_dl = reorderings_counter['ltr', 'dl', f, e] / ordering_count_sum_left
-      p_l_r_dr = reorderings_counter['ltr', 'dr', f, e] / ordering_count_sum_left
+      p_l_r_m = phrase_based_reorderings_counter['ltr', 'm', f, e] / ordering_count_sum_left
+      p_l_r_s = phrase_based_reorderings_counter['ltr', 's', f, e] / ordering_count_sum_left
+      p_l_r_dl = phrase_based_reorderings_counter['ltr', 'dl', f, e] / ordering_count_sum_left
+      p_l_r_dr = phrase_based_reorderings_counter['ltr', 'dr', f, e] / ordering_count_sum_left
 
-      p_r_l_m = reorderings_counter['rtl', 'm', f, e] / ordering_count_sum_right
-      p_r_l_s = reorderings_counter['rtl', 's', f, e] / ordering_count_sum_right
-      p_r_l_dl = reorderings_counter['rtl', 'dl', f, e] / ordering_count_sum_right
-      p_r_l_dr = reorderings_counter['rtl', 'dr', f, e] / ordering_count_sum_right
+      p_r_l_m = phrase_based_reorderings_counter['rtl', 'm', f, e] / ordering_count_sum_right
+      p_r_l_s = phrase_based_reorderings_counter['rtl', 's', f, e] / ordering_count_sum_right
+      p_r_l_dl = phrase_based_reorderings_counter['rtl', 'dl', f, e] / ordering_count_sum_right
+      p_r_l_dr = phrase_based_reorderings_counter['rtl', 'dr', f, e] / ordering_count_sum_right
 
       print("{} ||| {} ||| {} {} {} {} {} {} {} {}".format(f, e, p_l_r_m, p_l_r_s, p_l_r_dl, p_l_r_dr, p_r_l_m, p_r_l_s, p_r_l_dl, p_r_l_dr))
 

@@ -38,9 +38,15 @@ def phrase_extraction_algorithm(foreign_sentence_split, english_sentence_split, 
           if (e_start <= sub_alignment_e <= e_end) and (fs <= sub_alignment_f <= fe)
           ]
         sub_alignments = tuple(sub_alignments)
+        e_first_alignment = min([e_index for (e_index, f_index) in sub_alignments])
+        e_last_alignment = max([e_index for (e_index, f_index) in sub_alignments])
+        f_first_alignment = min([f_index for (e_index, f_index) in sub_alignments])
+        f_last_alignment = max([f_index for (e_index, f_index) in sub_alignments])
 
-        if fe < fs + phrase_length: # Only make phrases of length five or less
-          E.add((foreign_phrase, english_phrase, sub_alignments))
+        # TODO: Switch
+        if fe < fs + phrase_length:
+          E.add((foreign_phrase, english_phrase, sub_alignments,
+            (e_start, e_end), (fs, fe)))
 
         fe += 1
 
@@ -73,6 +79,7 @@ def phrase_extraction_algorithm(foreign_sentence_split, english_sentence_split, 
 
 def count_reorderings(n, english_sentences, foreign_sentences, global_alignments):
   reorderings_counter = Counter()
+  word_based_reorderings_counter = Counter()
   global_phrase_pairs = set()
 
   for i in range(n): 
@@ -83,34 +90,88 @@ def count_reorderings(n, english_sentences, foreign_sentences, global_alignments
     foreign_sentence_split = foreign_sentence.split(' ')
     english_sentence_split = english_sentence.split(' ')
 
-    # f, e, sub_alignments, (e_start, e_end), (f_start, f_end)
+    # f, e, sub_alignments,
+    # (e_start, e_end), (f_start, f_end), (e_first_alignment, e_last_alignment), (f_first_alignment, f_last_alignment)
     phrase_pairs = phrase_extraction_algorithm(foreign_sentence_split, english_sentence_split, alignments)
 
     for phrase_pair_base in phrase_pairs:
-      # Add (f,e)
-      global_phrase_pairs.update((phrase_pair_base[0], phrase_pair_base[1]))
+      base_pair_f                                             = phrase_pair_base[0]
+      base_pair_e                                             = phrase_pair_base[1]
+      base_pair_e_start, base_pair_e_end                      = phrase_pair_base[3]
+      base_pair_f_start, base_pair_f_end                      = phrase_pair_base[4]
+      print(base_pair_e, "-", base_pair_f)
+
+      global_phrase_pairs.update((base_pair_f, base_pair_e))
 
       for phrase_pair_target in phrase_pairs:
-        base_pair_e_start, base_pair_e_end = phrase_pair_base[3]
-        base_pair_f_start, base_pair_f_end = phrase_pair_base[4]
+        target_pair_f                                               = phrase_pair_target[0]
+        target_pair_e                                               = phrase_pair_target[1]
+        target_pair_sub_alignments                                  = phrase_pair_target[2]
+        target_pair_e_start, target_pair_e_end                      = phrase_pair_target[3]
+        target_pair_f_start, target_pair_f_end                      = phrase_pair_target[4]
+        target_pair_f_last_index = len(target_pair_f.split(' ')) - 1
+        target_pair_e_last_index = len(target_pair_e.split(' ')) - 1
 
-        target_pair_e_start, target_pair_e_end = phrase_pair_target[3]
-        target_pair_f_start, target_pair_f_end = phrase_pair_target[4]
-
-        # Left-to-right
+        # Phrase-based (left-to-right and right-to-left) and word-based (left-to-right)
         if target_pair_e_start == base_pair_e_end + 1:
+
           if target_pair_f_start == base_pair_f_end + 1:
-            reorderings_counter.update([('ltr', 'm', phrase_pair_base[0], phrase_pair_base[1])])
-            reorderings_counter.update([('rtl','m', phrase_pair_target[0], phrase_pair_target[1])])
+            reorderings_counter.update([('ltr', 'm', base_pair_f, base_pair_e)])
+            reorderings_counter.update([('rtl','m', target_pair_f, target_pair_e)])
+
+            if (0, 0) in target_pair_sub_alignments:
+              word_based_reorderings_counter.update(['ltr', 'm', base_pair_f, base_pair_e])
+            else:
+              word_based_reorderings_counter.update(['ltr', 'dr', base_pair_f, base_pair_e])
+
           elif target_pair_f_start == base_pair_f_end - 1:
-            reorderings_counter.update([('ltr','s', phrase_pair_base[0], phrase_pair_base[1])])
-            reorderings_counter.update([('rtl','s', phrase_pair_target[0], phrase_pair_target[1])])
+            reorderings_counter.update([('ltr','s', base_pair_f, base_pair_e)])
+            reorderings_counter.update([('rtl','s', target_pair_f, target_pair_e)])
+
+            if (0, target_pair_f_last_index) in target_pair_sub_alignments:
+              word_based_reorderings_counter.update(['ltr', 's', base_pair_f, base_pair_e])
+            else:
+              word_based_reorderings_counter.update(['ltr', 'dl', base_pair_f, base_pair_e])
+
           elif target_pair_f_start > base_pair_f_end:
-            reorderings_counter.update([('ltr','dr', phrase_pair_base[0], phrase_pair_base[1])])
-            reorderings_counter.update([('rtl','dr', phrase_pair_target[0], phrase_pair_target[1])])
+            reorderings_counter.update([('ltr','dr', base_pair_f, base_pair_e)])
+            reorderings_counter.update([('rtl','dr', target_pair_f, target_pair_e)])
+
+            word_based_reorderings_counter.update(['ltr', 'dr', base_pair_f, base_pair_e])
+
           elif target_pair_f_end < base_pair_f_start:
-            reorderings_counter.update([('ltr','dl', phrase_pair_base[0], phrase_pair_base[1])])
-            reorderings_counter.update([('rtl','dl', phrase_pair_target[0], phrase_pair_target[1])])
+            reorderings_counter.update([('ltr','dl', base_pair_f, base_pair_e)])
+            reorderings_counter.update([('rtl','dl', target_pair_f, target_pair_e)])
+
+            word_based_reorderings_counter.update(['ltr', 'dr', base_pair_f, base_pair_e])
+
+        # Word-based (right-to-left)
+        # Check whether the target block ends where the base block begins
+        if target_pair_e_end == base_pair_e_start - 1:
+          # Check whether the target block is monotone
+          if target_pair_f_end == base_pair_f_start - 1:
+            # Check whether an alignment in this block is monotone
+            if (target_pair_e_last_index, target_pair_f_last_index) in target_pair_sub_alignments:
+              reorderings_counter.update(['rtl', 'm', base_pair_f, base_pair_e])
+            else:
+              reorderings_counter.update(['rtl', 'dr', base_pair_f, base_pair_e])
+
+          # Check whether the target block is on the left side of the base block
+          # (which makes it discontinuous right for the right-to-left model)
+          elif (target_pair_f_end < base_pair_f_start):
+            reorderings_counter.update(['rtl', 'dr', base_pair_f, base_pair_e])
+
+          # Check wether the block is swapped
+          elif target_pair_f_start == base_pair_f_end + 1:
+            # Check wether there is also a word alignment that is swapped
+            if (target_pair_e_last_index, 0) in target_pair_sub_alignments:
+              reorderings_counter.update(['rtl', 's', base_pair_f, base_pair_e])
+            else:
+              reorderings_counter.update(['rtl', 'dl', base_pair_f, base_pair_e])
+          
+          # Check wether the target block is on the right side of the base block (making it discontinuous left in the rtl model)
+          elif (target_pair_f_start > base_pair_f_end):
+            reorderings_counter.update(['rtl', 'dl', base_pair_f, base_pair_e])            
 
   return reorderings_counter, global_phrase_pairs
 
@@ -124,13 +185,9 @@ def main():
 
   english_sentences = ["en1 en2 en3 en4 en5 en6"]
   foreign_sentences = ["f1 f2 f3 f4 f5 f6 f7"]
-  global_alignments = [[(0, 0), (1, 1), (2, 1), (3, 5), (3, 4), (4, 2), (4,2), (5, 6)]]
+  global_alignments = [[(0, 0), (1, 1), (2, 1), (3, 4), (3, 5), (4, 2), (4, 3), (5, 6)]]
 
   reorderings_counter, phrase_pairs = count_reorderings(1, english_sentences, foreign_sentences, global_alignments)
-
-  for (f, e) in phrase_pairs:
-    count_ltr_monotone = reorderings_counter('ltr', 'm', f, e)
-    count_ltr_swap = 
 
 if __name__ == '__main__':
   main()

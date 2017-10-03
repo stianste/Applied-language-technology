@@ -1,6 +1,8 @@
 import data_reader
 from collections import Counter
 
+phrase_length = 7
+
 def read_data():
   english_sentences = data_reader.read_english_sentences()
   foreign_sentences = data_reader.read_german_sentences()
@@ -37,12 +39,12 @@ def phrase_extraction_algorithm(foreign_sentence_split, english_sentence_split, 
           ]
         sub_alignments = tuple(sub_alignments)
 
-        if fe < fs + 7: # Only make phrases of length five or less
-          E.add((foreign_phrase, english_phrase, sub_alignments, (e_start, e_end), (fs, fe)))
+        if fe < fs + phrase_length: # Only make phrases of length five or less
+          E.add((foreign_phrase, english_phrase, sub_alignments))
 
         fe += 1
 
-        if fe in f_aligned or fe == len(foreign_sentence_split) or fe > fs + 7:
+        if fe in f_aligned or fe == len(foreign_sentence_split) or fe > fs + phrase_length:
           break
 
       fs -= 1
@@ -57,7 +59,7 @@ def phrase_extraction_algorithm(foreign_sentence_split, english_sentence_split, 
 
   for e_start in range(len(english_sentence_split)):
     # Only make phrases of length five or less
-    for e_end in range(e_start, min(e_start + 7, len(english_sentence_split))):
+    for e_end in range(e_start, min(e_start + phrase_length, len(english_sentence_split))):
       f_start, f_end = len(foreign_sentence_split)-1, -1
 
       for (e_pos, f_pos) in A:

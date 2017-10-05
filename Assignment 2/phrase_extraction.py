@@ -1,5 +1,6 @@
 import data_reader
 from collections import Counter
+import matplotlib.pyplot as plt
 
 phrase_length = 7
 
@@ -78,6 +79,9 @@ def phrase_extraction_algorithm(foreign_sentence_split, english_sentence_split, 
 def count_reorderings(n, english_sentences, foreign_sentences, global_alignments):
   phrase_based_reorderings_counter = Counter()
   word_based_reorderings_counter = Counter()
+  ordering_amount_per_f_phrase_length_counter = Counter()
+  ordering_amount_per_e_phrase_length_counter = Counter()
+
   global_phrase_pairs = set()
 
   for i in range(n):
@@ -96,6 +100,8 @@ def count_reorderings(n, english_sentences, foreign_sentences, global_alignments
       base_pair_e                         = phrase_pair_base[1]
       base_pair_f_start, base_pair_f_end  = phrase_pair_base[3]
       base_pair_e_start, base_pair_e_end  = phrase_pair_base[4]
+      base_pair_f_len = len(base_pair_f.split(' '))
+      base_pair_e_len = len(base_pair_e.split(' '))
 
       global_phrase_pairs.update([(base_pair_f, base_pair_e)])
 
@@ -115,6 +121,9 @@ def count_reorderings(n, english_sentences, foreign_sentences, global_alignments
             phrase_based_reorderings_counter.update([('ltr', 'm', base_pair_f, base_pair_e)])
             phrase_based_reorderings_counter.update([('rtl','m', target_pair_f, target_pair_e)])
 
+            ordering_amount_per_f_phrase_length_counter.update([('m', base_pair_f_len)])
+            ordering_amount_per_e_phrase_length_counter.update([('m', base_pair_e_len)])
+
             if (0, 0) in target_pair_sub_alignments:
               word_based_reorderings_counter.update([('ltr', 'm', base_pair_f, base_pair_e)])
             else:
@@ -123,6 +132,9 @@ def count_reorderings(n, english_sentences, foreign_sentences, global_alignments
           elif target_pair_f_end == base_pair_f_start - 1:
             phrase_based_reorderings_counter.update([('ltr','s', base_pair_f, base_pair_e)])
             phrase_based_reorderings_counter.update([('rtl','s', target_pair_f, target_pair_e)])
+
+            ordering_amount_per_f_phrase_length_counter.update([('s', base_pair_f_len)])
+            ordering_amount_per_e_phrase_length_counter.update([('s', base_pair_e_len)])
 
             if (0, target_pair_f_last_index) in target_pair_sub_alignments:
               word_based_reorderings_counter.update([('ltr', 's', base_pair_f, base_pair_e)])
@@ -133,11 +145,17 @@ def count_reorderings(n, english_sentences, foreign_sentences, global_alignments
             phrase_based_reorderings_counter.update([('ltr','dr', base_pair_f, base_pair_e)])
             phrase_based_reorderings_counter.update([('rtl','dr', target_pair_f, target_pair_e)])
 
+            ordering_amount_per_f_phrase_length_counter.update([('dr', base_pair_f_len)])
+            ordering_amount_per_e_phrase_length_counter.update([('dr', base_pair_e_len)])
+
             word_based_reorderings_counter.update([('ltr', 'dr', base_pair_f, base_pair_e)])
 
           elif target_pair_f_end < base_pair_f_start:
             phrase_based_reorderings_counter.update([('ltr','dl', base_pair_f, base_pair_e)])
             phrase_based_reorderings_counter.update([('rtl','dl', target_pair_f, target_pair_e)])
+
+            ordering_amount_per_f_phrase_length_counter.update([('dl', base_pair_f_len)])
+            ordering_amount_per_e_phrase_length_counter.update([('dl', base_pair_e_len)])
 
             word_based_reorderings_counter.update([('ltr', 'dl', base_pair_f, base_pair_e)])
 
@@ -169,7 +187,46 @@ def count_reorderings(n, english_sentences, foreign_sentences, global_alignments
           elif (target_pair_f_start > base_pair_f_end):
             word_based_reorderings_counter.update([('rtl', 'dl', base_pair_f, base_pair_e)])
 
-  return phrase_based_reorderings_counter, word_based_reorderings_counter, global_phrase_pairs
+  return phrase_based_reorderings_counter, word_based_reorderings_counter, ordering_amount_per_f_phrase_length_counter, ordering_amount_per_e_phrase_length_counter, global_phrase_pairs
+
+def plot_histograms_orientation_vs_phrase_length(ordering_amount_per_f_phrase_length_counter, ordering_amount_per_e_phrase_length_counter):
+  def plot_subplot(ordering_amount_per_phrase_length_counter, ax):
+    x_multi = ([1,2,3,4,5,6,7], [1,2,3,4,5,6,7], [1,2,3,4,5,6,7], [1,2,3,4,5,6,7])
+
+    counts_m = [ordering_amount_per_phrase_length_counter['m', i] for i in range(1, 8)]
+    counts_s = [ordering_amount_per_phrase_length_counter['s', i] for i in range(1, 8)]
+    counts_dl = [ordering_amount_per_phrase_length_counter['dl', i] for i in range(1, 8)]
+    counts_dr = [ordering_amount_per_phrase_length_counter['dr', i] for i in range(1, 8)]
+
+    list_of_counts = [counts_m, counts_s, counts_dl, counts_dr]
+
+    counts1_total = sum([count[0] for count in list_of_counts])
+    counts2_total = sum([count[1] for count in list_of_counts])
+    counts3_total = sum([count[2] for count in list_of_counts])
+    counts4_total = sum([count[3] for count in list_of_counts])
+    counts5_total = sum([count[4] for count in list_of_counts])
+    counts6_total = sum([count[5] for count in list_of_counts])
+    counts7_total = sum([count[6] for count in list_of_counts])
+
+    ws =[counts1_total, counts2_total, counts3_total, counts4_total, counts5_total, counts6_total, counts7_total]
+    prob_m = [counts_m[i] / ws[i] for i in range(7)]
+    prob_s = [counts_s[i] / ws[i] for i in range(7)]
+    prob_dl = [counts_dl[i] / ws[i] for i in range(7)]
+    prob_dr = [counts_dr[i] / ws[i] for i in range(7)]
+
+    ax.hist(x_multi, bins=range(1,8), weights=(prob_m, prob_s, prob_dl, prob_dr), histtype='bar', label=('mono', 'swap', 'disc. l', 'disc. r'))
+
+  fig, (ax1, ax2) = plt.subplots(1, 2)
+  plot_subplot(ordering_amount_per_f_phrase_length_counter, ax1)
+  ax1.set_xlabel('Foreign phrase length')
+  ax1.set_ylabel(r'$p_{l \rightarrow r}(o | len_f)$')
+  ax1.set_title(r'$p_{l \rightarrow r}(o)$ vs. foreign phrase length')
+  plot_subplot(ordering_amount_per_e_phrase_length_counter, ax2)
+  ax2.set_xlabel('English phrase length')
+  ax2.set_ylabel(r'$p_{l \rightarrow r}(o | len_e)$')
+  ax2.set_title(r'$p_{l \rightarrow r}(o)$ vs. English phrase length')
+  ax2.legend()
+  plt.show()
 
 def main():
 
@@ -179,14 +236,15 @@ def main():
 
   english_sentences, foreign_sentences, global_alignments = read_data()
 
-  english_sentences = ["en1 en2 en3 en4 en5 en6"]
-  foreign_sentences = ["f1 f2 f3 f4 f5 f6 f7"]
-  global_alignments = [[(0, 0), (1, 1), (2, 1), (3, 4), (3, 5), (4, 2), (4, 3), (5, 6)]]
+  # english_sentences = ["en1 en2 en3 en4 en5 en6"]
+  # foreign_sentences = ["f1 f2 f3 f4 f5 f6 f7"]
+  # global_alignments = [[(0, 0), (1, 1), (2, 1), (3, 4), (3, 5), (4, 2), (4, 3), (5, 6)]]
 
-  phrase_based_reorderings_counter, word_based_reorderings_counter, phrase_pairs = \
-      count_reorderings(1, english_sentences, foreign_sentences, global_alignments)
+  phrase_based_reorderings_counter, word_based_reorderings_counter, \
+    ordering_amount_per_f_phrase_length_counter, ordering_amount_per_e_phrase_length_counter, phrase_pairs = \
+      count_reorderings(10, english_sentences, foreign_sentences, global_alignments)
 
-  print(word_based_reorderings_counter)
+  plot_histograms_orientation_vs_phrase_length(ordering_amount_per_f_phrase_length_counter, ordering_amount_per_e_phrase_length_counter)
 
   for (f, e) in phrase_pairs:
     phrase_ordering_count_sum_right = 0
@@ -210,9 +268,9 @@ def main():
     phrase_p_r_l_dl = phrase_based_reorderings_counter['rtl', 'dl', f, e] / max(phrase_ordering_count_sum_right, 1)
     phrase_p_r_l_dr = phrase_based_reorderings_counter['rtl', 'dr', f, e] / max(phrase_ordering_count_sum_right, 1)
 
-    print("### Phrase based ###")
-    print("{} ||| {} ||| {} {} {} {} {} {} {} {}\n".format(f, e, phrase_p_l_r_m, phrase_p_l_r_s, phrase_p_l_r_dl, \
-        phrase_p_l_r_dr, phrase_p_r_l_m, phrase_p_r_l_s, phrase_p_r_l_dl, phrase_p_r_l_dr))
+    # print("### Phrase based ###")
+    # print("{} ||| {} ||| {} {} {} {} {} {} {} {}\n".format(f, e, phrase_p_l_r_m, phrase_p_l_r_s, phrase_p_l_r_dl, \
+    #     phrase_p_l_r_dr, phrase_p_r_l_m, phrase_p_r_l_s, phrase_p_r_l_dl, phrase_p_r_l_dr))
 
     word_p_l_r_m = word_based_reorderings_counter['ltr', 'm', f, e] / max(word_ordering_count_sum_left, 1)
     word_p_l_r_s = word_based_reorderings_counter['ltr', 's', f, e] / max(word_ordering_count_sum_left, 1)
@@ -224,9 +282,9 @@ def main():
     word_p_r_l_dl = word_based_reorderings_counter['rtl', 'dl', f, e] / max(word_ordering_count_sum_right, 1)
     word_p_r_l_dr = word_based_reorderings_counter['rtl', 'dr', f, e] / max(word_ordering_count_sum_right, 1)
 
-    print("### Word based ###")
-    print("{} ||| {} ||| {} {} {} {} {} {} {} {}\n".format(f, e, word_p_l_r_m, word_p_l_r_s, word_p_l_r_dl, \
-        word_p_l_r_dr, word_p_r_l_m, word_p_r_l_s, word_p_r_l_dl, word_p_r_l_dr))
+    # print("### Word based ###")
+    # print("{} ||| {} ||| {} {} {} {} {} {} {} {}\n".format(f, e, word_p_l_r_m, word_p_l_r_s, word_p_l_r_dl, \
+    #     word_p_l_r_dr, word_p_r_l_m, word_p_r_l_s, word_p_r_l_dl, word_p_r_l_dr))
 
 if __name__ == '__main__':
   main()

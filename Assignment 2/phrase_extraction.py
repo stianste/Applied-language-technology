@@ -78,7 +78,7 @@ def phrase_extraction_algorithm(foreign_sentence_split, english_sentence_split, 
 
 def count_reorderings(n, english_sentences, foreign_sentences, global_alignments):
   phrase_based_reorderings_counter = Counter()
-  word_based_phrase_based_reorderings_counter = Counter()
+  word_based_reorderings_counter = Counter()
   global_phrase_pairs = set()
 
   for i in range(n):
@@ -117,31 +117,31 @@ def count_reorderings(n, english_sentences, foreign_sentences, global_alignments
             phrase_based_reorderings_counter.update([('rtl','m', target_pair_f, target_pair_e)])
 
             if (0, 0) in target_pair_sub_alignments:
-              word_based_phrase_based_reorderings_counter.update(['ltr', 'm', base_pair_f, base_pair_e])
+              word_based_reorderings_counter.update(['ltr', 'm', base_pair_f, base_pair_e])
             else:
-              word_based_phrase_based_reorderings_counter.update(['ltr', 'dr', base_pair_f, base_pair_e])
+              word_based_reorderings_counter.update(['ltr', 'dr', base_pair_f, base_pair_e])
 
           elif target_pair_f_start == base_pair_f_end - 1:
             phrase_based_reorderings_counter.update([('ltr','s', base_pair_f, base_pair_e)])
             phrase_based_reorderings_counter.update([('rtl','s', target_pair_f, target_pair_e)])
 
             if (0, target_pair_f_last_index) in target_pair_sub_alignments:
-              word_based_phrase_based_reorderings_counter.update(['ltr', 's', base_pair_f, base_pair_e])
+              word_based_reorderings_counter.update(['ltr', 's', base_pair_f, base_pair_e])
             else:
-              word_based_phrase_based_reorderings_counter.update(['ltr', 'dl', base_pair_f, base_pair_e])
+              word_based_reorderings_counter.update(['ltr', 'dl', base_pair_f, base_pair_e])
 
           elif target_pair_f_start > base_pair_f_end:
             # TODO: Figure out the difference between discontinuous right and left
             phrase_based_reorderings_counter.update([('ltr','dr', base_pair_f, base_pair_e)])
             phrase_based_reorderings_counter.update([('rtl','dr', target_pair_f, target_pair_e)])
 
-            word_based_phrase_based_reorderings_counter.update(['ltr', 'dr', base_pair_f, base_pair_e])
+            word_based_reorderings_counter.update(['ltr', 'dr', base_pair_f, base_pair_e])
 
           elif target_pair_f_end < base_pair_f_start:
             phrase_based_reorderings_counter.update([('ltr','dl', base_pair_f, base_pair_e)])
             phrase_based_reorderings_counter.update([('rtl','dl', target_pair_f, target_pair_e)])
 
-            word_based_phrase_based_reorderings_counter.update(['ltr', 'dr', base_pair_f, base_pair_e])
+            word_based_reorderings_counter.update(['ltr', 'dr', base_pair_f, base_pair_e])
 
         # Word-based (right-to-left)
         # Check whether the target block ends where the base block begins

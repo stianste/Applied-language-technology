@@ -355,7 +355,7 @@ def main():
   english_sentences, foreign_sentences, global_alignments = data_reader.read_data()
 
   # For all sentences: Extract phrases, count reorderings and collect other useful statistics.
-  count_reorderings(10, english_sentences, foreign_sentences, global_alignments)
+  count_reorderings(len(english_sentences), english_sentences, foreign_sentences, global_alignments)
 
   # Write the reordering statistics to files
   output_reordering_statistics()

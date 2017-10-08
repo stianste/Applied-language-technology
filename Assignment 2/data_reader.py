@@ -43,6 +43,13 @@ def read_word_alignments():
 
   return word_alignment_dataset
 
+def read_data():
+  english_sentences = read_english_sentences()
+  foreign_sentences = read_german_sentences()
+  global_alignments = read_word_alignments()
+
+  return english_sentences, foreign_sentences, global_alignments
+
 def _read_file(filename):
   with open(filename, 'r') as f:
     data = f.read()

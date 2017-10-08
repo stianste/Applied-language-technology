@@ -5,13 +5,6 @@ import numpy as np
 
 phrase_length = 7
 
-def read_data():
-  english_sentences = data_reader.read_english_sentences()
-  foreign_sentences = data_reader.read_german_sentences()
-  global_alignments = data_reader.read_word_alignments()
-
-  return english_sentences, foreign_sentences, global_alignments
-
 def phrase_extraction_algorithm(foreign_sentence_split, english_sentence_split, A):
   def extract(f_start, f_end, e_start, e_end):
     if f_end == -1:
@@ -296,11 +289,8 @@ def show_orderings_comparison_histogram(phrase_orderings_counter, word_orderings
   plt.show()
 
 def main():
-  english_sentences, foreign_sentences, global_alignments = read_data()
-
-  # english_sentences = ["en1 en2 en3 en4 en5 en6"]
-  # foreign_sentences = ["f1 f2 f3 f4 f5 f6 f7"]
-  # global_alignments = [[(0, 0), (1, 1), (2, 1), (3, 4), (3, 5), (4, 2), (4, 3), (5, 6)]]
+  # Read the sentences and alignments from files. Note that we swap the alignments.
+  english_sentences, foreign_sentences, global_alignments = data_reader.read_data()
 
   phrase_based_reorderings_counter, word_based_reorderings_counter, phrase_orderings_counter, word_orderings_counter, \
     ordering_amount_per_f_phrase_length_counter, ordering_amount_per_e_phrase_length_counter, phrase_pairs = \

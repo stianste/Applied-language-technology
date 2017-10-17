@@ -1,8 +1,8 @@
 import data_reader
 # TODO: What bout 666.666?
 # TODO: Reordering: How to handle first and last phrases?
-# TODO: Should we care about performance and/or memory usage?
-# TODO: How to deal with translations that are not in the translation of reodering model?
+# TODO: Convert to log probs
+# TODO: How to deal with translations that are not in the phrase table
 
 def calculate_language_probability(english_phrase, language_model):
   return 0
@@ -18,7 +18,35 @@ def calculate_translation_probability(german_phrase, english_phrase, translation
 
 def calculate_reordering_probability(german_phrase, english_phrase, german_indexes, reordering_model):
   # german_indexes = [german_s_index, german_e_index, german_previous_s_index, german_previous_e_index, german_next_s_index, german_next_e_index]
-  return 0
+  german_s_index, german_e_index = german_indexes[0], german_indexes[1]
+  german_previous_s_index, german_previous_e_index = german_indexes[2], german_indexes[3]
+  german_next_s_index, german_next_e_index = german_indexes[4], german_indexes[5]
+
+  if not (german_phrase, english_phrase) in reordering_model:
+    return 0
+
+  log_sum = 0
+  # Right-to-left
+  if german_s_index - 1 == german_previous_e_index:
+    log_sum += reordering_model[(german_phrase, english_phrase)][0] # Monotone
+
+  elif german_e_index + 1 == german_previous_s_index:
+    log_sum += reordering_model[(german_phrase, english_phrase)][1] # Swap
+
+  else:
+    log_sum += reordering_model[(german_phrase, english_phrase)][2] # Discont
+
+  # Left-to-right
+  if german_e_index + 1 == german_next_s_index:
+    log_sum += reordering_model[(german_phrase, english_phrase)][4] # Monotone
+
+  elif german_s_index - 1 == german_next_e_index:
+    log_sum += reordering_model[(german_phrase, english_phrase)][5] # Swap
+
+  else:
+    log_sum += reordering_model[(german_phrase, english_phrase)][6] # Disct
+
+  return log_sum
 
 def main():
   trace_file = open('Data/testresults.trans.txt.trace', 'r')
@@ -26,9 +54,9 @@ def main():
   german_file = open('Data/file.test.de', 'r')
 
   print("Reading models")
-  language_model = None
+  language_model = data_reader.read_language_model()
   translation_model = data_reader.read_translation_model()
-  reordering_model = None
+  reordering_model = data_reader.read_reordering_model()
 
   for i in range(1):
     trace_line = trace_file.readline()

@@ -76,4 +76,9 @@ def read_language_model():
   start_index = start_index + ngram_4_n_lines + 2
   ngram_5_model = _get_ngram_model(language_model_lines, start_index, start_index + ngram_5_n_lines)
 
-  return ngram_1_model, ngram_2_model, ngram_3_model, ngram_4_model, ngram_5_model
+  ngram_1_model.update(ngram_2_model)
+  ngram_1_model.update(ngram_3_model)
+  ngram_1_model.update(ngram_4_model)
+  ngram_1_model.update(ngram_5_model)
+
+  return ngram_1_model

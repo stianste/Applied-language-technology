@@ -35,7 +35,7 @@ def read_reordering_model():
   return reordering_model
 
 # Read a certain number of lines and add the values into a dict (ngram-model)
-def get_ngram_model(language_model_lines, start_index, end_index):
+def _get_ngram_model(language_model_lines, start_index, end_index):
   ngram_model = {}
 
   for i in range(start_index, end_index):
@@ -66,20 +66,14 @@ def read_language_model():
   ngram_5_n_lines = int(language_model_lines[6].split("=")[1])
 
   start_index = 9
-  ngram_1_model = get_ngram_model(language_model_lines, start_index, start_index + ngram_1_n_lines)
+  ngram_1_model = _get_ngram_model(language_model_lines, start_index, start_index + ngram_1_n_lines)
   start_index = start_index + ngram_1_n_lines + 2
-  ngram_2_model = get_ngram_model(language_model_lines, start_index, start_index + ngram_2_n_lines)
+  ngram_2_model = _get_ngram_model(language_model_lines, start_index, start_index + ngram_2_n_lines)
   start_index = start_index + ngram_2_n_lines + 2
-  ngram_3_model = get_ngram_model(language_model_lines, start_index, start_index + ngram_3_n_lines)
+  ngram_3_model = _get_ngram_model(language_model_lines, start_index, start_index + ngram_3_n_lines)
   start_index = start_index + ngram_3_n_lines + 2
-  ngram_4_model = get_ngram_model(language_model_lines, start_index, start_index + ngram_4_n_lines)
+  ngram_4_model = _get_ngram_model(language_model_lines, start_index, start_index + ngram_4_n_lines)
   start_index = start_index + ngram_4_n_lines + 2
-  ngram_5_model = get_ngram_model(language_model_lines, start_index, start_index + ngram_5_n_lines)
+  ngram_5_model = _get_ngram_model(language_model_lines, start_index, start_index + ngram_5_n_lines)
 
   return ngram_1_model, ngram_2_model, ngram_3_model, ngram_4_model, ngram_5_model
-
-read_language_model()
-print(1)
-read_translation_model()
-print(2)
-read_reordering_model()

@@ -2,12 +2,19 @@ import data_reader
 # TODO: What bout 666.666?
 # TODO: Reordering: How to handle first and last phrases?
 # TODO: Should we care about performance and/or memory usage?
+# TODO: How to deal with translations that are not in the translation of reodering model?
 
 def calculate_language_probability(english_phrase, language_model):
   return 0
 
-def calculate_translation_probability(german_phrase, english_phrase, language_model):
-  return 0
+def calculate_translation_probability(german_phrase, english_phrase, translation_model):
+  log_sum = 0
+
+  if (german_phrase, english_phrase) in translation_model:
+    for log_probabillity in translation_model[(german_phrase, english_phrase)]:
+      log_sum += log_probabillity
+
+  return log_sum
 
 def calculate_reordering_probability(german_phrase, english_phrase, german_indexes, reordering_model):
   # german_indexes = [german_s_index, german_e_index, german_previous_s_index, german_previous_e_index, german_next_s_index, german_next_e_index]
@@ -18,8 +25,9 @@ def main():
   english_file = open('Data/file.test.en', 'r')
   german_file = open('Data/file.test.de', 'r')
 
+  print("Reading models")
   language_model = None
-  translation_model = None
+  translation_model = data_reader.read_translation_model()
   reordering_model = None
 
   for i in range(1):
@@ -44,14 +52,12 @@ def main():
       (german_next_s_index, german_next_e_index) = map(int, german_next_indices.split("-"))
 
       german_indexes = [german_s_index, german_e_index, german_previous_s_index, german_previous_e_index, german_next_s_index, german_next_e_index]
+      german_phrase = " ".join(german_words[german_s_index : german_e_index + 1])
 
       # Calculate probabilities
       phrase_probability = 0
       phrase_probability += calculate_language_probability(english_phrase, language_model)
-
-      german_phrase = " ".join(german_words[german_s_index : german_e_index + 1])
-      phrase_probability += calculate_translation_probability(german_phrase, english_phrase, language_model)
-
+      phrase_probability += calculate_translation_probability(german_phrase, english_phrase, translation_model)
       phrase_probability += calculate_reordering_probability(german_phrase, english_phrase, german_indexes, reordering_model)
 
       translation_cost += phrase_probability

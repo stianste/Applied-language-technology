@@ -1,5 +1,7 @@
 import data_reader
-# TODO: Change data_reader
+# TODO: What bout 666.666?
+# TODO: Reordering: How to handle first and last phrases?
+# TODO: Convert to log probs
 
 def calculate_language_probability(english_phrase):
   return 0
@@ -27,6 +29,9 @@ def main():
     sentence_probability = 0
     for trace_phrase in trace_phrases:
       (german_indices, english_phrase) = trace_phrase.split(":")
+      (german_s_index, german_e_index) = map(int, german_indices.split("-"))
+
+      (german_indices_next, english_phrase_next) = trace_phrases[trace_i+1].split(":")
       (german_s_index, german_e_index) = map(int, german_indices.split("-"))
 
       phrase_probability = 0

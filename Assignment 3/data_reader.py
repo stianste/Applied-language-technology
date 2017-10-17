@@ -1,66 +1,30 @@
-import requests
-import os
+def read_translation_model():
+  translation_model_file = open('Data/phrase-table', 'r')
+  translation_model_lines = translation_model_file.read().splitlines()
 
-### Parameters: 
-read_locally = True # Either read files locally or from the internet
+  translation_model = {}
+  for translation_model_line in translation_model_lines:
+    (german_phrase, english_phrase, probabilities, _, _) = translation_model_line.split(" ||| ")
+    (p_f_given_e, lex_f_given_e, p_e_given_f, lex_e_given_f) = probabilities.split(" ")
 
+    translation_model[(german_phrase, english_phrase)] = (p_f_given_e, lex_f_given_e, p_e_given_f, lex_e_given_f)
 
-english_dataset_url = "https://staff.fnwi.uva.nl/m.fadaee/ALT/file.en"
-german_dataset_url = "https://staff.fnwi.uva.nl/m.fadaee/ALT/file.de"
-word_alignment_dataset_url = "https://staff.fnwi.uva.nl/m.fadaee/ALT/file.aligned"
+  return translation_model
 
-dataset_directory = 'data'
-english_dataset_filename = os.path.join(dataset_directory, 'file.en')
-german_dataset_filename = os.path.join(dataset_directory, 'file.de')
-word_alignment_dataset_filename = os.path.join(dataset_directory, 'file.aligned')
+def read_reordering_model():
+  reordering_model_file = open('Data/dm_fe_0.75', 'r')
+  reordering_model_lines = reordering_model_file.read().splitlines()
 
-def read_german_sentences():
-  if read_locally:
-    german_dataset = _read_file(german_dataset_filename)
-  else:
-    german_dataset = _read_online_file(german_dataset_url)
-  
-  german_dataset = german_dataset.splitlines()
-  return german_dataset
+  reordering_model = {}
+  for reordering_model_line in reordering_model_lines:
+    (german_phrase, english_phrase, probabilities) = reordering_model_line.split(" ||| ")
+    (mono_rtl, swap_rtl, disc_rtl, mono_ltr, swap_ltr, disc_ltr) = probabilities.split(" ")
 
-def read_english_sentences():
-  if read_locally:
-    english_dataset = _read_file(english_dataset_filename)
-  else:
-    english_dataset = _read_online_file(english_dataset_url)
-  
-  english_dataset = english_dataset.splitlines()
-  return english_dataset
+    reordering_model[(german_phrase, english_phrase)] = (mono_rtl, swap_rtl, disc_rtl, mono_ltr, swap_ltr, disc_ltr)
 
-def read_word_alignments():
-  if read_locally:
-    word_alignment_dataset = _read_file(word_alignment_dataset_filename)
-  else:
-    word_alignment_dataset = _read_online_file(word_alignment_dataset_url)
+  return reordering_model
 
-  word_alignment_dataset = word_alignment_dataset.splitlines()
-  word_alignment_dataset = [[_string_to_tupple(x) for x in alignment.split()] for alignment in word_alignment_dataset]
+def read_language_model():
+  language_model_file = open('Data/file.en.lm', 'r')
 
-  return word_alignment_dataset
-
-def read_data():
-  english_sentences = read_english_sentences()
-  foreign_sentences = read_german_sentences()
-  global_alignments = read_word_alignments()
-
-  return english_sentences, foreign_sentences, global_alignments
-
-def _read_file(filename):
-  with open(filename, 'r') as f:
-    data = f.read()
-  return data
-
-def _read_online_file(url):
-  data = requests.get(url).text
-  return data
-
-# Convert string 'a-b' to tuple (b, a)
-# So we switch around the order
-def _string_to_tupple(s):
-  numbers = s.split('-')
-  return (int(numbers[1]), int(numbers[0]))
+  return 0

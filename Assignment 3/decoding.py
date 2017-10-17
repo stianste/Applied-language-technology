@@ -9,10 +9,10 @@ import data_reader
 # TODO: How to deal with translations that are not in the phrase table
 
 def calculate_language_probability(english_phrase, language_model):
-  english_words = english_phrase.split(" ")
+  english_words = english_phrase.split()
 
   # Base case
-  if len(english_words) == 0:
+  if not english_words:
     return 0
 
   # Return (log) probability if in language model
@@ -23,7 +23,7 @@ def calculate_language_probability(english_phrase, language_model):
   # If the history is not in the language model, we use a backoff weight of 0
   else:
     history = " ".join(english_words[:-1])
-    backoff_weight = language_model.get(history, default=[0,0])[1]
+    backoff_weight = language_model.get(history, [0,0])[1]
 
     lower_order_ngram = " ".join(english_words[1:])
     lower_order_ngram_prob = calculate_language_probability(lower_order_ngram, language_model)

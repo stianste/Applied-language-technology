@@ -2,6 +2,7 @@ import data_reader
 # TODO: What bout 666.666?
 # TODO: Reordering: How to handle first and last phrases?
 # TODO: Convert to log probs
+# TODO: Should we care about performance and/or memory usage?
 
 def calculate_language_probability(english_phrase):
   return 0

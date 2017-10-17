@@ -1,11 +1,9 @@
 import data_reader
 # TODO: What bout 666.666?
-# TODO: Should we care about performance and/or memory usage?
-# TODO: How to deal with translations that are not in the translation of reodering model?
+# TODO: Report: How to deal with translations that are not in the translation or reordering model?
 # TODO: Report: Talk about divide-by-zero error
 # TODO: Report: Discuss backoff and why it should be zero if history not in LM
 # TODO: How to deal with translations that are not in the phrase table
-# TODO: Should we include <s> and </s>?
 
 def calculate_language_probability(english_phrase, language_model):
   english_words = english_phrase.split()

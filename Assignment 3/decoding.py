@@ -3,9 +3,30 @@ import data_reader
 # TODO: Reordering: How to handle first and last phrases?
 # TODO: Should we care about performance and/or memory usage?
 # TODO: How to deal with translations that are not in the translation of reodering model?
+# TODO: Report: Talk about divide-by-zero error
+# TODO: Report: Discuss backoff and why it should be zero if history not in LM
 
 def calculate_language_probability(english_phrase, language_model):
-  return 0
+  english_words = english_phrase.split(" ")
+
+  # Base case
+  if len(english_words) == 0:
+    return 0
+
+  # Return (log) probability if in language model
+  if english_phrase in language_model:
+    return language_model[english_phrase][0]
+
+  # Else, recursively backoff to lower n-gram models
+  # If the history is not in the language model, we use a backoff weight of 0
+  else:
+    history = " ".join(english_words[:-1])
+    backoff_weight = language_model.get(history, default=[0,0])[1]
+
+    lower_order_ngram = " ".join(english_words[1:])
+    lower_order_ngram_prob = calculate_language_probability(lower_order_ngram, language_model)
+
+    return backoff_weight + lower_order_ngram_prob
 
 def calculate_translation_probability(german_phrase, english_phrase, translation_model):
   log_sum = 0

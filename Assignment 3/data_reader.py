@@ -45,7 +45,7 @@ def _get_ngram_model(language_model_lines, start_index, end_index):
     if len(split_line) == 3:
       backoff_weight = float(split_line[2])
     else:
-      backoff_weight = None
+      backoff_weight = 0
 
     ngram_model[ngram] = (probability, backoff_weight)
 

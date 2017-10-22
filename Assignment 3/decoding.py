@@ -1,5 +1,9 @@
 import data_reader
 
+lambda_language_model = 1
+lambda_translation_model = 1
+lambda_reordering_model = 1
+
 # Calculate language probability of english phrase with the highest order n-gram possible.
 # Otherwise, back-off recursively
 def calculate_language_probability(english_phrase, language_model):
@@ -40,9 +44,8 @@ def calculate_reordering_probability(german_phrase, english_phrase, german_index
   german_next_start_index, german_next_end_index = german_indexes[4], german_indexes[5]
 
   log_sum = 0
-
   if (german_phrase, english_phrase) not in reordering_model:
-    return log_sum
+    return 0
 
 
   ### Right-to-left model ###
@@ -112,7 +115,7 @@ def main():
     german_words = german_line.split()
     german_sentence_len = len(german_words)
 
-    translation_cost = 0
+    sentence_translation_probability = 0
     for phrase_i, trace_phrase in enumerate(trace_phrases):
       # Get necessary values
       (german_indices, english_phrase) = trace_phrase.split(":", 1)
@@ -139,19 +142,22 @@ def main():
       # Combine the six start and end indices into just one variable
       german_indexes = [german_start_index, german_end_index, german_previous_start_index, german_previous_end_index, german_next_start_index, german_next_end_index]
 
-      # Calculate probabilities
-      phrase_probability = 0
-      phrase_probability += calculate_translation_probability(german_phrase, english_phrase, translation_model)
-      phrase_probability += calculate_reordering_probability(german_phrase, english_phrase, german_indexes, german_sentence_len, reordering_model)
-
       # Get all (up-to) 5-grams in this phrase and add the language probability of this n-gram
+      phrase_language_probability = 0
       for english_word_index in range(1, len(english_phrase_split) + 1):
         n_gram = " ".join(english_phrase_split[max(0, english_word_index - 5) : english_word_index])
-        phrase_probability += calculate_language_probability(n_gram, language_model)
+        phrase_language_probability += calculate_language_probability(n_gram, language_model)
 
-      translation_cost += phrase_probability
+      # Calculate probabilities
+      phrase_probability = 0
+      phrase_probability += lambda_language_model    * phrase_language_probability
+      phrase_probability += lambda_translation_model * calculate_translation_probability(german_phrase, english_phrase, translation_model)
+      phrase_probability += lambda_reordering_model  * calculate_reordering_probability(german_phrase, english_phrase, german_indexes, german_sentence_len, reordering_model)
 
-    print("Translation cost of sentence {}/{}: {}".format(sentence_i, 500, translation_cost))
+
+      sentence_translation_probability += phrase_probability
+
+    print("Translation cost of sentence {}/{}: {}".format(sentence_i, 500, sentence_translation_probability))
     sentence_i += 1
 
   trace_file.close()

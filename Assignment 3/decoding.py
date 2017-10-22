@@ -1,5 +1,7 @@
 import data_reader
 
+# Calculate language probability of english phrase with the highest order n-gram possible.
+# Otherwise, back-off recursively
 def calculate_language_probability(english_phrase, language_model):
   english_words = english_phrase.split()
 
@@ -22,60 +24,62 @@ def calculate_language_probability(english_phrase, language_model):
 
     return backoff_weight + lower_order_ngram_prob
 
+# Calculate translation probability of phrase pair (e,f) by:
+# p(e|f) * p(f|e) * lex(e|f) * lex(f|e)
 def calculate_translation_probability(german_phrase, english_phrase, translation_model):
-  log_sum = 0
-
   if (german_phrase, english_phrase) in translation_model:
-    for log_probabillity in translation_model[(german_phrase, english_phrase)]:
-      log_sum += log_probabillity
-
-  return log_sum
-
-def calculate_reordering_probability(german_phrase, english_phrase, german_indexes, german_sentence_len, reordering_model):
-  # german_indexes = [german_s_index, german_e_index, german_previous_s_index, german_previous_e_index, german_next_s_index, german_next_e_index]
-  german_s_index, german_e_index = german_indexes[0], german_indexes[1]
-  german_previous_s_index, german_previous_e_index = german_indexes[2], german_indexes[3]
-  german_next_s_index, german_next_e_index = german_indexes[4], german_indexes[5]
-
-  if not (german_phrase, english_phrase) in reordering_model:
+    return sum([log_prob for log_prob in translation_model[(german_phrase, english_phrase)]])
+  else:
     return 0
 
+# Calculate reordering probability. See our report for more info on how we did this
+def calculate_reordering_probability(german_phrase, english_phrase, german_indexes, german_sentence_len, reordering_model):
+  # Unpack indices variable into multiple single variables.
+  german_start_index, german_end_index = german_indexes[0], german_indexes[1]
+  german_previous_start_index, german_previous_end_index = german_indexes[2], german_indexes[3]
+  german_next_start_index, german_next_end_index = german_indexes[4], german_indexes[5]
+
   log_sum = 0
-  # Right-to-left
+
+  if (german_phrase, english_phrase) not in reordering_model:
+    return log_sum
+
+
+  ### Right-to-left model ###
+
   # Case for the first english phrase
-  if german_previous_s_index == -1:
-    if german_s_index == 0:
+  if german_previous_start_index == -1:
+    if german_start_index == 0:
       log_sum += reordering_model[(german_phrase, english_phrase)][0] # Monotone
     else:
       log_sum += reordering_model[(german_phrase, english_phrase)][2] # Discontinuous
+
   # Any other english phrase
   else:
-    if german_s_index - 1 == german_previous_e_index:
+    if german_start_index - 1 == german_previous_end_index:
       log_sum += reordering_model[(german_phrase, english_phrase)][0] # Monotone
-
-    elif german_e_index + 1 == german_previous_s_index:
+    elif german_end_index + 1 == german_previous_start_index:
       log_sum += reordering_model[(german_phrase, english_phrase)][1] # Swap
-
     else:
       log_sum += reordering_model[(german_phrase, english_phrase)][2] # Discont
 
-  # Left-to-right
-  # Case for the last englisg phrase
-  if german_next_s_index == -1:
-    if german_e_index == german_sentence_len - 1:
-      log_sum += reordering_model[(german_phrase, english_phrase)][4] # Monotone
+  ### Left-to-right ###
+
+  # Case for the last english phrase
+  if german_next_start_index == -1:
+    if german_end_index == german_sentence_len - 1:
+      log_sum += reordering_model[(german_phrase, english_phrase)][3] # Monotone
     else:
-      log_sum += reordering_model[(german_phrase, english_phrase)][6] # Discontinuous
+      log_sum += reordering_model[(german_phrase, english_phrase)][5] # Discontinuous
+
   # Any other english phrase
   else:
-    if german_e_index + 1 == german_next_s_index:
-      log_sum += reordering_model[(german_phrase, english_phrase)][4] # Monotone
-
-    elif german_s_index - 1 == german_next_e_index:
-      log_sum += reordering_model[(german_phrase, english_phrase)][5] # Swap
-
+    if german_end_index + 1 == german_next_start_index:
+      log_sum += reordering_model[(german_phrase, english_phrase)][3] # Monotone
+    elif german_start_index - 1 == german_next_end_index:
+      log_sum += reordering_model[(german_phrase, english_phrase)][4] # Swap
     else:
-      log_sum += reordering_model[(german_phrase, english_phrase)][6] # Disct
+      log_sum += reordering_model[(german_phrase, english_phrase)][5] # Disct
 
   return log_sum
 
@@ -92,40 +96,46 @@ def main():
   reordering_model = data_reader.read_reordering_model()
 
   while True:
-    # EOF reached
-    if not trace_line:
-      break
-
+    # Load one line at a time and strip trailing whitespace
     trace_line = trace_file.readline().strip()
     english_line = english_file.readline().strip()
     german_line = german_file.readline().strip()
 
+    # EOF reached
+    if not trace_line:
+      break
+
+    # Split lines into array of words or phrases.
     trace_phrases = trace_line.split(" ||| ")
     english_words = english_line.split()
     german_words = german_line.split()
     german_sentence_len = len(german_words)
 
     translation_cost = 0
-
-    for trace_i, trace_phrase in enumerate(trace_phrases):
+    for phrase_i, trace_phrase in enumerate(trace_phrases):
       # Get necessary values
       (german_indices, english_phrase) = trace_phrase.split(":", 1)
-      (german_s_index, german_e_index) = map(int, german_indices.split("-"))
+      (german_start_index, german_end_index) = map(int, german_indices.split("-"))
+      german_phrase = " ".join(german_words[german_start_index : german_end_index + 1])
 
-      if (trace_i - 1 > 0):
-        (german_previous_indices, previous_english_phrase) = trace_phrases[max(trace_i - 1, 0)].split(":", 1)
-        (german_previous_s_index, german_previous_e_index) = map(int, german_previous_indices.split("-"))
+      # Get start and end indices of the previous translated phrase. If this is the first English phrase,
+      # indicate this edge case with indices -1
+      if (phrase_i - 1 > 0):
+        (german_previous_indices, previous_english_phrase) = trace_phrases[max(phrase_i - 1, 0)].split(":", 1)
+        (german_previous_start_index, german_previous_end_index) = map(int, german_previous_indices.split("-"))
       else:
-        (german_previous_s_index, german_previous_e_index) = (-1, -1)
+        (german_previous_start_index, german_previous_end_index) = (-1, -1)
 
-      if (trace_i + 1 < len(trace_phrases)):
-        (german_next_indices, next_english_phrase) = trace_phrases[trace_i + 1].split(":", 1)
-        (german_next_s_index, german_next_e_index) = map(int, german_next_indices.split("-"))
+      # Get start and end indices of the next translated phrase. If this is the last English phrase,
+      # indicate this edge case with indices -1
+      if (phrase_i + 1 < len(trace_phrases)):
+        (german_next_indices, next_english_phrase) = trace_phrases[phrase_i + 1].split(":", 1)
+        (german_next_start_index, german_next_end_index) = map(int, german_next_indices.split("-"))
       else:
-        (german_next_s_index, german_next_e_index) = (-1, -1)
+        (german_next_start_index, german_next_end_index) = (-1, -1)
 
-      german_indexes = [german_s_index, german_e_index, german_previous_s_index, german_previous_e_index, german_next_s_index, german_next_e_index]
-      german_phrase = " ".join(german_words[german_s_index : german_e_index + 1])
+      # Combine the six start and end indices into just one variable
+      german_indexes = [german_start_index, german_end_index, german_previous_start_index, german_previous_end_index, german_next_start_index, german_next_end_index]
 
       # Calculate probabilities
       phrase_probability = 0

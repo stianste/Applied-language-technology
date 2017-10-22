@@ -1,9 +1,4 @@
 import data_reader
-# TODO: What bout 666.666?
-# TODO: Report: How to deal with translations that are not in the translation or reordering model?
-# TODO: Report: Talk about divide-by-zero error
-# TODO: Report: Discuss backoff and why it should be zero if history not in LM
-# TODO: How to deal with translations that are not in the phrase table
 
 def calculate_language_probability(english_phrase, language_model):
   english_words = english_phrase.split()
@@ -89,36 +84,42 @@ def main():
   english_file = open('Data/file.test.en', 'r')
   german_file = open('Data/file.test.de', 'r')
 
-  print("Reading models")
+  print("Loading language model in memory...")
   language_model = data_reader.read_language_model()
+  print("Loading translation model in memory...")
   translation_model = data_reader.read_translation_model()
+  print("Loading reordering model in memory...")
   reordering_model = data_reader.read_reordering_model()
 
-  for i in range(1):
-    trace_line = trace_file.readline()
-    english_line = english_file.readline()
-    german_line = german_file.readline()
+  while True:
+    # EOF reached
+    if not trace_line:
+      break
+
+    trace_line = trace_file.readline().strip()
+    english_line = english_file.readline().strip()
+    german_line = german_file.readline().strip()
 
     trace_phrases = trace_line.split(" ||| ")
-    english_words = english_line.split(" ")
-    german_words = german_line.split(" ")
+    english_words = english_line.split()
+    german_words = german_line.split()
     german_sentence_len = len(german_words)
 
     translation_cost = 0
 
     for trace_i, trace_phrase in enumerate(trace_phrases):
       # Get necessary values
-      (german_indices, english_phrase) = trace_phrase.split(":")
+      (german_indices, english_phrase) = trace_phrase.split(":", 1)
       (german_s_index, german_e_index) = map(int, german_indices.split("-"))
 
       if (trace_i - 1 > 0):
-        (german_previous_indices, previous_english_phrase) = trace_phrases[max(trace_i - 1, 0)].split(":")
+        (german_previous_indices, previous_english_phrase) = trace_phrases[max(trace_i - 1, 0)].split(":", 1)
         (german_previous_s_index, german_previous_e_index) = map(int, german_previous_indices.split("-"))
       else:
         (german_previous_s_index, german_previous_e_index) = (-1, -1)
 
       if (trace_i + 1 < len(trace_phrases)):
-        (german_next_indices, next_english_phrase) = trace_phrases[trace_i + 1].split(":") if (trace_i + 1 < len(trace_phrases)) else '0-1:test'
+        (german_next_indices, next_english_phrase) = trace_phrases[trace_i + 1].split(":", 1)
         (german_next_s_index, german_next_e_index) = map(int, german_next_indices.split("-"))
       else:
         (german_next_s_index, german_next_e_index) = (-1, -1)
@@ -136,6 +137,10 @@ def main():
 
     print("Translation cost: {}".format(translation_cost))
 
+
+  trace_file.close()
+  english_file.close()
+  german_file.close()
 
 if __name__ == '__main__':
   main()

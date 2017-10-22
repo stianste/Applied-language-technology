@@ -95,6 +95,7 @@ def main():
   print("Loading reordering model in memory...")
   reordering_model = data_reader.read_reordering_model()
 
+  sentence_i = 1
   while True:
     # Load one line at a time and strip trailing whitespace
     trace_line = trace_file.readline().strip()
@@ -117,6 +118,7 @@ def main():
       (german_indices, english_phrase) = trace_phrase.split(":", 1)
       (german_start_index, german_end_index) = map(int, german_indices.split("-"))
       german_phrase = " ".join(german_words[german_start_index : german_end_index + 1])
+      english_phrase_split = english_phrase.split()
 
       # Get start and end indices of the previous translated phrase. If this is the first English phrase,
       # indicate this edge case with indices -1
@@ -139,14 +141,18 @@ def main():
 
       # Calculate probabilities
       phrase_probability = 0
-      phrase_probability += calculate_language_probability(english_phrase, language_model)
       phrase_probability += calculate_translation_probability(german_phrase, english_phrase, translation_model)
       phrase_probability += calculate_reordering_probability(german_phrase, english_phrase, german_indexes, german_sentence_len, reordering_model)
 
+      # Get all (up-to) 5-grams in this phrase and add the language probability of this n-gram
+      for english_word_index in range(1, len(english_phrase_split) + 1):
+        n_gram = " ".join(english_phrase_split[max(0, english_word_index - 5) : english_word_index])
+        phrase_probability += calculate_language_probability(n_gram, language_model)
+
       translation_cost += phrase_probability
 
-    print("Translation cost: {}".format(translation_cost))
-
+    print("Translation cost of sentence {}/{}: {}".format(sentence_i, 500, translation_cost))
+    sentence_i += 1
 
   trace_file.close()
   english_file.close()

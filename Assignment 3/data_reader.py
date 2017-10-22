@@ -45,6 +45,8 @@ def _get_ngram_model(language_model_lines, start_index, end_index):
     if len(split_line) == 3:
       backoff_weight = float(split_line[2])
     else:
+      # If there is no back-off we can backoff with no cost.
+      # Thus we use a backoff weight of log(1) = 0
       backoff_weight = 0
 
     ngram_model[ngram] = (probability, backoff_weight)
